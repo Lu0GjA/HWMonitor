@@ -7,7 +7,72 @@
 #include <locale.h>
 #pragma comment(lib, "mi.lib")
 
+
 HWMON_INFO hi;
+
+
+void PrintInstance(MI_Operation* miOperation)
+{
+	MI_Result miResult = MI_RESULT_OK;
+	MI_Boolean moreResults;
+	const MI_Char* errorString = NULL;
+	MI_Uint32 instanceCount = 0;
+	MI_Instance* miInstance;
+	const MI_Instance* errorDetails = NULL;
+
+	do
+	{
+		MI_Operation_GetInstance(
+			miOperation,
+			(const MI_Instance**)&miInstance,
+			&moreResults,
+			&miResult,
+			&errorString,
+			&errorDetails
+		);
+
+		if (miResult != MI_RESULT_OK)
+		{
+			wprintf(L"MI_Operation_GetInstance failed. MI_Result: %ld\n", miResult);
+			break;
+		}
+
+		if (miInstance)
+		{
+			MI_Value value;
+			MI_Type type;
+			MI_Uint32 flags;
+
+			miResult = MI_Instance_GetElement(
+				miInstance,
+				L"Name",
+				&value,
+				&type,
+				&flags,
+				NULL
+			);
+
+			if (miResult != MI_RESULT_OK)
+			{
+				wprintf(L"MI_Instance_GetElement failed. MI_Result: %ld\n", miResult);
+				return;
+			}
+
+			wprintf(L"Process Name: %s\n", value.string);
+			instanceCount++;
+		}
+	} while (miResult == MI_RESULT_OK && moreResults == MI_TRUE);
+
+	if (miResult != MI_RESULT_OK)
+	{
+		wprintf(L"Operation failed: MI_Result=%ld, errorString=%s\n", miResult, errorString);
+	}
+	else
+	{
+		wprintf(L"Operation succeeded. Number of instances = %u\n", instanceCount);
+	}
+}
+
 
 int main(int argc, char** argv)
 {
@@ -117,6 +182,7 @@ int main(int argc, char** argv)
 	MI_Result miResult = MI_RESULT_OK;
 	MI_Session miSession = MI_SESSION_NULL;
 	MI_Operation miOp = MI_OPERATION_NULL;
+	MI_Operation miOpQuery = MI_OPERATION_NULL;
 	
 	miResult = MI_Application_Initialize(
 		0,
@@ -155,71 +221,38 @@ int main(int argc, char** argv)
 		NULL,
 		&miOp);
 
-	miResult = MI_RESULT_OK;
-	MI_Boolean moreResults;
-	const MI_Char* errorString = NULL;
-	MI_Uint32 instanceCount = 0;
-	MI_Instance* miInstance;
-	const MI_Instance* errorDetails = NULL;
+	MI_Session_QueryInstances(
+		&miSession,
+		0,
+		NULL,
+		L"root\\cimv2",
+		L"WQL",
+		L"select * from win32_process where handle = 0 or handle = 4",
+		NULL,
+		&miOpQuery
+	);
 
-	do
-	{
-		MI_Operation_GetInstance(
-			&miOp,
-			(const MI_Instance**) &miInstance,
-			&moreResults,
-			&miResult,
-			&errorString,
-			&errorDetails);
-
-		if (miResult != MI_RESULT_OK)
-		{
-			printf("MI_Operation_GetInstance failed. MI_Result: %ld\n", miResult);
-			break;
-		}
-
-		if (miInstance)
-		{
-			MI_Value value;
-			MI_Type type;
-			MI_Uint32 flags;
-
-			miResult = MI_Instance_GetElement(
-				miInstance,
-				L"Name",
-				&value,
-				&type,
-				&flags,
-				NULL);
-
-			if (miResult != MI_RESULT_OK)
-			{
-				printf("MI_Instance_GetElement failed. MI_Result: %ld\n", miResult);
-				break;
-			}
-
-			wprintf(L"Process Name: %s\n", value.string);
-			instanceCount++;
-		}
-
-	} while (miResult == MI_RESULT_OK && moreResults == MI_TRUE);
-
-	if (miResult != MI_RESULT_OK)
-	{
-		wprintf(L"Operation failed: MI_Result=%ld, errorString=%s\n", miResult, errorString);
-	}
-	else
-	{
-		printf("Operation succeeded. Number of instances = %u\n", instanceCount);
-	}
+	wprintf(L"Enumerate all instances:\n");
+	PrintInstance(&miOp);
+	wprintf(L"\n\nQuery instances:\n");
+	PrintInstance(&miOpQuery);
 
 	miResult =  MI_Operation_Close(&miOp);
 
 	if (miResult != MI_RESULT_OK)
 	{
-		printf("MI_Operation_Close failed. MI_Result: %ld\n", miResult);
+		printf("MI_Operation_Close (ALL) failed. MI_Result: %ld\n", miResult);
 		return -1;
 	}
+
+	miResult =  MI_Operation_Close(&miOpQuery);
+
+	if (miResult != MI_RESULT_OK)
+	{
+		printf("MI_Operation_Close (QUERY) failed. MI_Result: %ld\n", miResult);
+		return -1;
+	}
+
 
 	miResult =  MI_Session_Close(&miSession, NULL, NULL);
 
