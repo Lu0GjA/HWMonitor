@@ -4,9 +4,10 @@
 
 extern HWMON_INFO hi;
 
+
 HWMonitorUI::HWMonitorUI(QWidget *parent) : QWidget(parent)
 {
-    ui.setupUi(this);
+    ui.setupUi(this); //This must be put at start of this function
     thTimer = new TimerThread();
     sysTrayIcon = new QSystemTrayIcon(this);
     sysTrayMenu = new QMenu(this);
