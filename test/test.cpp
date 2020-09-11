@@ -322,7 +322,7 @@ int main(int argc, char** argv)
 		NULL,
 		L"root\\cimv2",
 		L"WQL",
-		L"select * from win32_process where handle = 0 or handle = 4",
+		L"select * from win32_processor",
 		NULL,
 		&miOpQuery
 	);
