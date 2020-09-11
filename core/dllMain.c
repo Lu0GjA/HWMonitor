@@ -88,10 +88,10 @@ VOID HWMONAPI HWMON_INIT(PHWMON_INFO phi)
 	ZeroMemory(&(phi->osviex), sizeof(OSVERSIONINFOEX));
 	ZeroMemory(&(phi->si), sizeof(SYSTEM_INFO));
 	ZeroMemory(&(phi->msex), sizeof(MEMORYSTATUSEX));
-	ZeroMemory(&(phi->liOldIdleTime), sizeof(LARGE_INTEGER));
-	ZeroMemory(&(phi->liOldSystemTime), sizeof(LARGE_INTEGER));
-	phi->puts = NULL;
-	phi->dbIdleTime = 0;
+	ZeroMemory(&(phi->pli.liOldIdleTime), sizeof(LARGE_INTEGER));
+	ZeroMemory(&(phi->pli.liOldSystemTime), sizeof(LARGE_INTEGER));
+	phi->pli.puts = NULL;
+	phi->pli.dbIdleTime = 0;
 }
 
 
@@ -119,8 +119,8 @@ DWORD HWMONAPI HWMON_AllocCpus(PHWMON_INFO phi)
 	DWORD dwStatus = ERROR_SUCCESS;
 	DWORD dwNumCpus = phi->si.dwNumberOfProcessors;
 
-	phi->puts = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwNumCpus * sizeof(PROCESSORS_USE_TIME));
-	if (phi->puts == NULL)
+	phi->pli.puts = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwNumCpus * sizeof(PROCESSORS_USE_TIME));
+	if (phi->pli.puts == NULL)
 	{
 		return -1;
 	}
@@ -133,15 +133,15 @@ DWORD HWMONAPI HWMON_FreeCpus(PHWMON_INFO phi)
 {
 	DWORD dwStatus = ERROR_SUCCESS;
 
-	if (phi->puts != NULL)
+	if (phi->pli.puts != NULL)
 	{
-		dwStatus = HeapFree(GetProcessHeap(), 0, phi->puts);
+		dwStatus = HeapFree(GetProcessHeap(), 0, phi->pli.puts);
 		if (dwStatus == 0)
 		{
 			return GetLastError();
 		}
 
-		phi->puts = NULL;
+		phi->pli.puts = NULL;
 	}
 
 	return dwStatus;
@@ -234,43 +234,43 @@ DWORD HWMONAPI HWMON_GetCpuInfo(PHWMON_INFO phi)
 	}
 
 	// If it's the first call - skip
-	if (phi->liOldIdleTime.QuadPart != 0)
+	if (phi->pli.liOldIdleTime.QuadPart != 0)
 	{
 		// CurrentValue = NewValue - OldValue
-		dbIdleTime = LARGE_INTEGER_TO_DOUBLE(spi.liIdleTime) - LARGE_INTEGER_TO_DOUBLE(phi->liOldIdleTime);
-		dbSystemTime = LARGE_INTEGER_TO_DOUBLE(sti.liKeSystemTime) - LARGE_INTEGER_TO_DOUBLE(phi->liOldSystemTime);
+		dbIdleTime = LARGE_INTEGER_TO_DOUBLE(spi.liIdleTime) - LARGE_INTEGER_TO_DOUBLE(phi->pli.liOldIdleTime);
+		dbSystemTime = LARGE_INTEGER_TO_DOUBLE(sti.liKeSystemTime) - LARGE_INTEGER_TO_DOUBLE(phi->pli.liOldSystemTime);
 
 		// CurrentCpuIdle = IdleTime / SystemTime
 		dbIdleTime = dbIdleTime / dbSystemTime;
 
 		// CurrentCpuUsage% = 100.0 - (CurrentCpuIdle * 100.0) / NumberOfProcessors
 		dbIdleTime = 100.0 - dbIdleTime * 100.0 / (double)phi->si.dwNumberOfProcessors + 0.5;
-		phi->dbIdleTime = dbIdleTime;
+		phi->pli.dbIdleTime = dbIdleTime;
 
 		// Calc processors
 		for (unsigned int i = 0; i < phi->si.dwNumberOfProcessors; i++)
 		{
-			phi->puts[i].dbCurrentTime = LARGE_INTEGER_TO_DOUBLE(sppis[i].liKernelTime) + LARGE_INTEGER_TO_DOUBLE(sppis[i].liUserTime) +
-				LARGE_INTEGER_TO_DOUBLE(sppis[i].liDpcTime) + LARGE_INTEGER_TO_DOUBLE(sppis[i].liInterruptTime) - phi->puts[i].dbOldCurrentTime;
-			phi->puts[i].dbIdleTime = LARGE_INTEGER_TO_DOUBLE(sppis[i].liIdleTime) - phi->puts[i].dbOldIdleTime;
+			phi->pli.puts[i].dbCurrentTime = LARGE_INTEGER_TO_DOUBLE(sppis[i].liKernelTime) + LARGE_INTEGER_TO_DOUBLE(sppis[i].liUserTime) +
+				LARGE_INTEGER_TO_DOUBLE(sppis[i].liDpcTime) + LARGE_INTEGER_TO_DOUBLE(sppis[i].liInterruptTime) - phi->pli.puts[i].dbOldCurrentTime;
+			phi->pli.puts[i].dbIdleTime = LARGE_INTEGER_TO_DOUBLE(sppis[i].liIdleTime) - phi->pli.puts[i].dbOldIdleTime;
 
 			// CurrentCpuIdle = IdleTime / SystemTime
-			phi->puts[i].dbIdleTime = phi->puts[i].dbIdleTime / phi->puts[i].dbCurrentTime;
+			phi->pli.puts[i].dbIdleTime = phi->pli.puts[i].dbIdleTime / phi->pli.puts[i].dbCurrentTime;
 
 			// CurrentCpuUsage% = 100.0 - (CurrentCpuIdle * 100.0) / NumberOfProcessors
-			phi->puts[i].dbIdleTime = 100.0 - phi->puts[i].dbIdleTime * 100.0 + 0.5;
+			phi->pli.puts[i].dbIdleTime = 100.0 - phi->pli.puts[i].dbIdleTime * 100.0 + 0.5;
 		}
 	}
 
 	// Store new CPU's idle and system time
-	phi->liOldIdleTime = spi.liIdleTime;
-	phi->liOldSystemTime = sti.liKeSystemTime;
+	phi->pli.liOldIdleTime = spi.liIdleTime;
+	phi->pli.liOldSystemTime = sti.liKeSystemTime;
 
 	for (unsigned int i = 0; i < phi->si.dwNumberOfProcessors; i++)
 	{
-		phi->puts[i].dbOldCurrentTime = LARGE_INTEGER_TO_DOUBLE(sppis[i].liKernelTime) + LARGE_INTEGER_TO_DOUBLE(sppis[i].liUserTime) +
+		phi->pli.puts[i].dbOldCurrentTime = LARGE_INTEGER_TO_DOUBLE(sppis[i].liKernelTime) + LARGE_INTEGER_TO_DOUBLE(sppis[i].liUserTime) +
 			LARGE_INTEGER_TO_DOUBLE(sppis[i].liDpcTime) + LARGE_INTEGER_TO_DOUBLE(sppis[i].liInterruptTime);
-		phi->puts[i].dbOldIdleTime = LARGE_INTEGER_TO_DOUBLE(sppis[i].liIdleTime);
+		phi->pli.puts[i].dbOldIdleTime = LARGE_INTEGER_TO_DOUBLE(sppis[i].liIdleTime);
 	}
 
 	dwStatus = HeapFree(GetProcessHeap(), 0, sppis);

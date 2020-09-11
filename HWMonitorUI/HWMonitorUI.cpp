@@ -195,7 +195,7 @@ void HWMonitorUI::initRefresh(void)
 
     //item11
     ZeroMemory(infoBuffer, MAX_INFO_BUFFER);
-    snprintf(infoBuffer, MAX_INFO_BUFFER, "CPU Usage: %.0f%%", hi.dbIdleTime);
+    snprintf(infoBuffer, MAX_INFO_BUFFER, "CPU Usage: %.0f%%", hi.pli.dbIdleTime);
     newItem = new QListWidgetItem();
     newItem->setText(QString(infoBuffer));
     newItem->setTextColor(QColor(0, 255, 0));
@@ -205,7 +205,7 @@ void HWMonitorUI::initRefresh(void)
     {
         //item12 + k
         ZeroMemory(infoBuffer, MAX_INFO_BUFFER);
-        snprintf(infoBuffer, MAX_INFO_BUFFER, "CPU[%d] Usage: %.0f%%", i, hi.puts[i].dbIdleTime);
+        snprintf(infoBuffer, MAX_INFO_BUFFER, "CPU[%d] Usage: %.0f%%", i, hi.pli.puts[i].dbIdleTime);
         newItem = new QListWidgetItem();
         newItem->setText(QString(infoBuffer));
         newItem->setTextColor(QColor(0, 255, 0));
@@ -238,14 +238,14 @@ void HWMonitorUI::refresh(void)
     ui.statusContainer->item(9)->setText(QString(infoBuffer));
 
     ZeroMemory(infoBuffer, MAX_INFO_BUFFER);
-    snprintf(infoBuffer, MAX_INFO_BUFFER, "CPU Usage: %.0f%%", hi.dbIdleTime);
+    snprintf(infoBuffer, MAX_INFO_BUFFER, "CPU Usage: %.0f%%", hi.pli.dbIdleTime);
     ui.statusContainer->item(11)->setText(QString(infoBuffer));
 
     for (unsigned int i = 0; i < hi.si.dwNumberOfProcessors; i++)
     {
         //item12 + k
         ZeroMemory(infoBuffer, MAX_INFO_BUFFER);
-        snprintf(infoBuffer, MAX_INFO_BUFFER, "CPU[%d] Usage: %.0f%%", i, hi.puts[i].dbIdleTime);
+        snprintf(infoBuffer, MAX_INFO_BUFFER, "CPU[%d] Usage: %.0f%%", i, hi.pli.puts[i].dbIdleTime);
         ui.statusContainer->item(12 + i)->setText(QString(infoBuffer));
     }
 }
