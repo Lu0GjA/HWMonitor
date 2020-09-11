@@ -4,13 +4,14 @@
 
 #include "core.h"
 
+#pragma comment(lib, "mi.lib")
 
 #define SystemBasicInformation 0
 #define SystemPerformanceInformation 2
 #define SystemTimeInformation 3
 #define SystemProcessorPerformanceInformation 8
 
-
+#define MAX_ERROR_STRING_BUFFER_LEN 128
 #define LARGE_INTEGER_TO_DOUBLE(x) ((double)((x).HighPart) * 4.294967296E9 + (double)((x).LowPart))
 
 
@@ -92,6 +93,122 @@ VOID HWMONAPI HWMON_INIT(PHWMON_INFO phi)
 	ZeroMemory(&(phi->pli.liOldSystemTime), sizeof(LARGE_INTEGER));
 	phi->pli.puts = NULL;
 	phi->pli.dbIdleTime = 0;
+}
+
+
+DWORD HWMONAPI HWMON_INIT_MIAPP(PHWMON_INFO phi)
+{
+	MI_Result miResult = MI_RESULT_OK;
+	char errMessage[MAX_ERROR_STRING_BUFFER_LEN] = { 0 };
+
+	miResult = MI_Application_Initialize(
+		0,
+		NULL,
+		NULL,
+		&phi->mictx.miApplication
+	);
+
+	if (miResult != MI_RESULT_OK)
+	{
+		snprintf(
+			errMessage,
+			MAX_ERROR_STRING_BUFFER_LEN,
+			"MI application initialize failed, result: %ld",
+			miResult
+		);
+		MessageBoxA(
+			NULL,
+			errMessage,
+			NULL,
+			MB_OK | MB_ICONERROR
+		);
+		return 1;
+	}
+
+	return 0;
+}
+
+
+DWORD HWMONAPI HWMON_CLOSE_MIAPP(PHWMON_INFO phi)
+{
+	MI_Result miResult = MI_RESULT_OK;
+	char errMessage[MAX_ERROR_STRING_BUFFER_LEN] = { 0 };
+
+	miResult = MI_Session_Close(&phi->mictx.miSession, NULL, NULL);
+
+	if (miResult != MI_RESULT_OK)
+	{
+		snprintf(
+			errMessage,
+			MAX_ERROR_STRING_BUFFER_LEN,
+			"MI session close failed, result: %ld",
+			miResult
+		);
+		MessageBoxA(
+			NULL,
+			errMessage,
+			NULL,
+			MB_OK | MB_ICONERROR
+		);
+		return 1;
+	}
+
+	miResult = MI_Application_Close(&phi->mictx.miApplication);
+
+	if (miResult != MI_RESULT_OK)
+	{
+		snprintf(
+			errMessage,
+			MAX_ERROR_STRING_BUFFER_LEN,
+			"MI application close failed, result: %ld",
+			miResult
+		);
+		MessageBoxA(
+			NULL,
+			errMessage,
+			NULL,
+			MB_OK | MB_ICONERROR
+		);
+		return 1;
+	}
+
+	return 0;
+}
+
+
+DWORD HWMONAPI HWMON_CreateMISession(PHWMON_INFO phi)
+{
+	MI_Result miResult = MI_RESULT_OK;
+	char errMessage[MAX_ERROR_STRING_BUFFER_LEN] = { 0 };
+
+	miResult = MI_Application_NewSession(
+		&phi->mictx.miApplication,
+		L"WMIDCOM",
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		&phi->mictx.miSession
+	);
+
+	if (miResult != MI_RESULT_OK)
+	{
+		snprintf(
+			errMessage,
+			MAX_ERROR_STRING_BUFFER_LEN,
+			"MI creating session failed, result: %ld",
+			miResult
+		);
+		MessageBoxA(
+			NULL,
+			errMessage,
+			NULL,
+			MB_OK | MB_ICONERROR
+		);
+		return 1;
+	}
+
+	return 0;
 }
 
 
