@@ -74,6 +74,99 @@ void PrintInstance(MI_Operation* miOperation)
 }
 
 
+MI_Result CreateSearchInstance(
+	MI_Session* miSession,
+	_In_z_ const wchar_t* namespaceName,
+	_In_z_ const wchar_t* className,
+	MI_Boolean keysOnly,
+	MI_Instance** inboundInstance)
+{
+	MI_Result miResult;
+
+	MI_Operation miOperation = MI_OPERATION_NULL;
+	MI_Class* miClass = NULL;
+	MI_Boolean moreResults;
+	MI_Char* errorMessagge = NULL;
+	MI_Instance* completionDetails = NULL;
+	MI_Instance* miInstance = NULL;
+	wchar_t str[] = L"0";
+
+	*inboundInstance = NULL;
+
+	MI_Session_GetClass(
+		miSession,
+		0,
+		NULL,
+		namespaceName,
+		className,
+		NULL,
+		&miOperation
+	);
+	MI_Operation_GetClass(
+		&miOperation,
+		(const MI_Class**)&miClass,
+		&moreResults,
+		&miResult,
+		(const MI_Char**)&errorMessagge,
+		(const MI_Instance**)&completionDetails
+	);
+
+	if (miResult == MI_RESULT_OK)
+	{
+		MI_Application miApplication = MI_APPLICATION_NULL;
+		miResult = MI_Session_GetApplication(miSession, &miApplication);
+
+		if (miResult == MI_RESULT_OK)
+		{
+			miResult = MI_Application_NewInstanceFromClass(
+				&miApplication,
+				className,
+				miClass,
+				&miInstance
+			);
+
+			if (miResult == MI_RESULT_OK)
+			{
+				MI_Value miValue;
+				miValue.string = str;
+				miResult = MI_Instance_SetElement(
+					miInstance,
+					L"Handle",
+					&miValue,
+					MI_STRING,
+					0);
+			}
+		}
+	}
+
+	if ((miResult != MI_RESULT_OK) && miInstance)
+	{
+		MI_Result _tmpResult = MI_Instance_Delete(miInstance);
+
+		if (_tmpResult != MI_RESULT_OK)
+		{
+			wprintf(L"Failed to delete key instance. MI_Result: %ld\n", _tmpResult);
+		}
+	}
+
+	{
+		MI_Result _tmpResult = MI_Operation_Close(&miOperation);
+
+		if (_tmpResult != MI_RESULT_OK)
+		{
+			wprintf(L"MI_Operation_Close failed. MI_Result: %ld\n", _tmpResult);
+		}
+	}
+
+	if (miResult == MI_RESULT_OK)
+	{
+		*inboundInstance = miInstance;
+	}
+
+	return miResult;
+}
+
+
 int main(int argc, char** argv)
 {
 	HWMON_INIT(&hi);
@@ -183,6 +276,8 @@ int main(int argc, char** argv)
 	MI_Session miSession = MI_SESSION_NULL;
 	MI_Operation miOp = MI_OPERATION_NULL;
 	MI_Operation miOpQuery = MI_OPERATION_NULL;
+	MI_Operation miOpSp = MI_OPERATION_NULL;
+	MI_Instance* miInstance = NULL;
 	
 	miResult = MI_Application_Initialize(
 		0,
@@ -234,8 +329,26 @@ int main(int argc, char** argv)
 
 	wprintf(L"Enumerate all instances:\n");
 	PrintInstance(&miOp);
-	wprintf(L"\n\nQuery instances:\n");
+	wprintf(L"\nQuery instances:\n");
 	PrintInstance(&miOpQuery);
+	wprintf(L"\nSpecific Class:\n");
+	CreateSearchInstance(
+		&miSession,
+		L"root\\cimv2",
+		L"Win32_Process",
+		MI_TRUE,
+		&miInstance
+	);
+	MI_Session_GetInstance(
+		&miSession,
+		0,
+		NULL,
+		L"root\\cimv2",
+		miInstance,
+		NULL,
+		&miOpSp
+	);
+	PrintInstance(&miOpSp);
 
 	miResult =  MI_Operation_Close(&miOp);
 
@@ -250,6 +363,14 @@ int main(int argc, char** argv)
 	if (miResult != MI_RESULT_OK)
 	{
 		printf("MI_Operation_Close (QUERY) failed. MI_Result: %ld\n", miResult);
+		return -1;
+	}
+
+	miResult =  MI_Operation_Close(&miOpSp);
+
+	if (miResult != MI_RESULT_OK)
+	{
+		printf("MI_Operation_Close (Sp) failed. MI_Result: %ld\n", miResult);
 		return -1;
 	}
 
