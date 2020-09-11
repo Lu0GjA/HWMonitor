@@ -18,15 +18,21 @@ typedef struct _PROCESSORS_USE_TIME
 } PROCESSORS_USE_TIME;
 
 
+typedef struct _PROCESSOR_LOAD_INFO
+{
+	LARGE_INTEGER liOldIdleTime;
+	LARGE_INTEGER liOldSystemTime;
+	PROCESSORS_USE_TIME* puts;
+	double dbIdleTime;
+} PROCESSOR_LOAD_INFO;
+
+
 typedef struct _HWMON_INFO
 {
 	OSVERSIONINFOEX osviex;
 	SYSTEM_INFO si;
 	MEMORYSTATUSEX msex;
-	LARGE_INTEGER liOldIdleTime;
-	LARGE_INTEGER liOldSystemTime;
-	PROCESSORS_USE_TIME* puts;
-	double dbIdleTime;
+	PROCESSOR_LOAD_INFO pli;
 
 } HWMON_INFO, *PHWMON_INFO;
 
