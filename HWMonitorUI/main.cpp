@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     HWMON_AllocCpus(&hi);
 
     QApplication a(argc, argv);
-    HWMonitorUI w;
+    HWMonitorUI w(Q_NULLPTR);
     w.show();
     retVal = a.exec();
     HWMON_FreeCpus(&hi);

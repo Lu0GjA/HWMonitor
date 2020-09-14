@@ -56,11 +56,6 @@ HWMonitorUI::HWMonitorUI(QWidget *parent) : QWidget(parent)
 HWMonitorUI::~HWMonitorUI()
 {
     delete thTimer;
-    delete sysTrayQuit;
-    delete sysTrayTopMost;
-    delete sysTrayNoTopMost;
-    delete sysTrayMenu;
-    delete sysTrayIcon;
 }
 
 
