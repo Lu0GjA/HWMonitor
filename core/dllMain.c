@@ -93,6 +93,10 @@ VOID HWMONAPI HWMON_INIT(PHWMON_INFO phi)
 	ZeroMemory(&(phi->pli.liOldSystemTime), sizeof(LARGE_INTEGER));
 	phi->pli.puts = NULL;
 	phi->pli.dbIdleTime = 0;
+	ZeroMemory(&(phi->mictx.miApplication), sizeof(MI_Application));
+	ZeroMemory(&(phi->mictx.miSession), sizeof(MI_Session));
+	phi->mictx.numberOfMiOps = 0;
+	ZeroMemory(&(phi->mictx.miOps), sizeof(MI_Operation) * HWMON_MAX_MI_OPERATION_NUMBER);
 }
 
 
