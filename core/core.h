@@ -14,6 +14,7 @@ typedef struct _MI_CTX
 {
 	MI_Application miApplication;
 	MI_Session miSession;
+	int numberOfMiOps;
 	MI_Operation miOps[HWMON_MAX_MI_OPERATION_NUMBER];
 } MI_CTX;
 
